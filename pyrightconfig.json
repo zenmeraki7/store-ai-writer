@@ -1,0 +1,10 @@
+﻿{
+  "include": ["backend"],
+  "extraPaths": ["backend"],
+  "pythonVersion": "3.11",
+  "typeCheckingMode": "basic",
+  "reportUnknownVariableType": "none",
+  "reportUnknownMemberType": "none",
+  "reportUnknownArgumentType": "none",
+  "reportPrivateUsage": "none"
+}

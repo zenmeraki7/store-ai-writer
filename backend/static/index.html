@@ -1,0 +1,1064 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Store AI Writer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  color-scheme:light;
+  --paper:#F1F4F0; --sheet:#FFFFFF; --ink:#0E2F2C; --ink-2:#3C5350; --mute:#6A7E7B;
+  --line:#D8E0DB; --line-2:#E8EEEA; --mark:#FFD84A; --mark-soft:#FFF3B8;
+  --ok:#1D7A5A; --ok-soft:#E3F3EC; --flag:#BF4026; --flag-soft:#FBE9E3;
+  --ui:"Bricolage Grotesque",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --copy:"Newsreader",Georgia,"Times New Roman",serif;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.55 var(--ui);-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--mark);outline-offset:2px;border-radius:6px}
+[hidden]{display:none!important}
+
+/* top bar */
+.top{display:flex;align-items:center;gap:12px;padding:16px clamp(18px,4vw,48px)}
+.logo{display:flex;align-items:center;gap:10px;font-weight:650;font-size:17px;letter-spacing:-.01em}
+.top .sp{flex:1}
+.state{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--mute)}
+.state i{width:9px;height:9px;border-radius:50%;background:var(--mute);display:block}
+.state.on{color:var(--ok)}.state.on i{background:var(--ok)}
+.state.demo{color:#8A6A00}.state.demo i{background:var(--mark)}
+.state.off{color:var(--flag)}.state.off i{background:var(--flag)}
+
+/* layout */
+.wrap{display:grid;grid-template-columns:minmax(340px,500px) minmax(0,1fr);gap:clamp(24px,4vw,64px);padding:8px clamp(18px,4vw,48px) 48px;max-width:1480px;margin:0 auto}
+@media(max-width:980px){.wrap{grid-template-columns:1fr}}
+.intro h1{font-size:clamp(28px,3.2vw,36px);line-height:1.1;letter-spacing:-.025em;font-weight:650;margin:10px 0 12px;text-wrap:balance}
+.intro p{margin:0;color:var(--ink-2);max-width:44ch}
+
+/* banner */
+.banner{margin-top:20px;background:var(--mark-soft);border-radius:14px;padding:14px 16px;font-size:14px}
+.banner b{font-weight:650}
+.banner details{margin-top:8px}
+.banner summary{cursor:pointer;font-weight:550}
+.banner pre{margin:8px 0 0;background:rgba(255,255,255,.75);padding:10px 12px;border-radius:10px;overflow:auto;font:12.5px/1.55 ui-monospace,Consolas,monospace}
+.banner.bad{background:var(--flag-soft);color:#7C2A18}
+
+/* tools */
+.tools{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px;align-items:center}
+.search{flex:1;min-width:180px;position:relative}
+.search input[type=text]{width:100%;padding:10px 12px 10px 38px;border:1px solid var(--line);border-radius:12px;background:var(--sheet)}
+.search svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--mute)}
+input[type=text],select,textarea{border:1px solid var(--line);border-radius:10px;background:var(--sheet);padding:10px 12px;width:100%;transition:border-color .15s,box-shadow .15s}
+input[type=text]:hover,textarea:hover{border-color:#B9C6C0}
+input[type=text]:focus,textarea:focus{outline:none;border-color:var(--ink);box-shadow:0 0 0 3px var(--mark)}
+textarea{resize:vertical;min-height:84px;line-height:1.5}
+.seg{display:inline-flex;background:var(--line-2);border-radius:999px;padding:3px}
+.seg label{position:relative;cursor:pointer}
+.seg input{position:absolute;opacity:0;inset:0;margin:0;cursor:pointer}
+.seg span{display:block;padding:6px 14px;border-radius:999px;font-size:14px;color:var(--ink-2);white-space:nowrap}
+.seg input:checked+span{background:var(--sheet);color:var(--ink);font-weight:600;box-shadow:0 1px 2px rgba(14,47,44,.18)}
+.seg input:focus-visible+span{outline:3px solid var(--mark)}
+
+/* style panel */
+details.style{margin-top:14px;background:var(--sheet);border:1px solid var(--line);border-radius:14px;padding:12px 16px}
+details.style summary{cursor:pointer;font-weight:600;list-style:none;display:flex;align-items:center;gap:8px}
+details.style summary::-webkit-details-marker{display:none}
+details.style summary::before{content:"";width:7px;height:7px;border:solid var(--ink-2);border-width:0 2px 2px 0;transform:rotate(-45deg);transition:transform .2s}
+details.style[open] summary::before{transform:rotate(45deg)}
+details.style summary small{font-weight:400;color:var(--mute);margin-left:auto;font-size:13px}
+.field{margin-top:16px}
+.lab{display:block;font-size:13.5px;font-weight:550;margin-bottom:6px}
+.lab .opt{color:var(--mute);font-weight:400}
+.pick{display:flex;flex-wrap:wrap;gap:8px}
+.pick label{position:relative;cursor:pointer}
+.pick input{position:absolute;opacity:0;inset:0;margin:0;cursor:pointer}
+.pick span{display:inline-flex;align-items:center;gap:7px;padding:6px 13px;border:1px solid var(--line);border-radius:999px;background:var(--sheet);font-size:14px}
+.pick label:hover span{border-color:#B9C6C0}
+.pick input:checked+span{background:var(--ink);border-color:var(--ink);color:#fff}
+.pick input:focus-visible+span{outline:3px solid var(--mark);outline-offset:2px}
+.pick.check input:checked+span::before{content:"";width:5px;height:9px;border:solid var(--mark);border-width:0 2px 2px 0;transform:rotate(40deg) translate(-1px,-1px)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:480px){.two{grid-template-columns:1fr}}
+.hint{color:var(--mute);font-size:13.5px;margin:6px 0 0}
+
+/* product list */
+.listhead{display:flex;align-items:center;justify-content:space-between;margin:22px 0 6px;font-size:13.5px;color:var(--mute)}
+.listhead label{display:inline-flex;align-items:center;gap:8px;cursor:pointer;color:var(--ink-2)}
+input[type=checkbox].cb{appearance:none;width:20px;height:20px;border:1.5px solid #AEBDB7;border-radius:6px;background:var(--sheet);cursor:pointer;display:grid;place-items:center;flex:none;margin:0}
+input[type=checkbox].cb:checked{background:var(--ink);border-color:var(--ink)}
+input[type=checkbox].cb:checked::after{content:"";width:5px;height:9px;border:solid var(--mark);border-width:0 2px 2px 0;transform:rotate(40deg) translate(-1px,-1px)}
+.plist{list-style:none;margin:0;padding:0;border-top:1px solid var(--line)}
+.prow{display:flex;align-items:center;gap:12px;padding:10px 6px;border-bottom:1px solid var(--line);border-radius:0;position:relative}
+.prow.active{background:linear-gradient(90deg,var(--mark-soft),rgba(255,243,184,0) 85%)}
+.prow.active::before{content:"";position:absolute;left:-1px;top:8px;bottom:8px;width:3px;border-radius:3px;background:var(--ink)}
+.pmain{flex:1;min-width:0;display:flex;align-items:center;gap:12px;text-align:left;background:none;border:0;padding:2px;cursor:pointer;border-radius:10px}
+.pmain:hover .pt{text-decoration:underline;text-decoration-color:var(--mark);text-decoration-thickness:3px;text-underline-offset:3px}
+.thumb{flex:none;width:48px;height:48px;border-radius:10px;background:var(--line-2);overflow:hidden;display:grid;place-items:center;font-weight:650;color:var(--ink-2)}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.pinfo{min-width:0;display:block}
+.pt{display:block;font-weight:550;line-height:1.3;overflow:hidden;display:-webkit-box;line-clamp:2;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.ps{display:flex;gap:0 12px;font-size:13px;color:var(--mute);white-space:nowrap;overflow:hidden}
+.ps span{overflow:hidden;text-overflow:ellipsis;flex:0 1 auto;min-width:0}
+.badge{flex:none;font-size:12.5px;padding:2px 10px;border-radius:999px;background:var(--line-2);color:var(--ink-2);white-space:nowrap}
+.badge.need{background:var(--mark-soft);color:#6B5200}
+.badge.ready{background:var(--mark);color:var(--ink);font-weight:600}
+.badge.done{background:var(--ok-soft);color:var(--ok)}
+.badge.bad{background:var(--flag-soft);color:var(--flag)}
+.badge .sp{display:inline-block;width:10px;height:10px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:spin .7s linear infinite;margin-right:5px;vertical-align:-1px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.moreb{margin:16px auto 0;display:block}
+.empty{padding:28px 6px;color:var(--mute)}
+
+/* bottom bar */
+.cta{position:sticky;bottom:0;margin:22px -8px 0;padding:18px 8px 16px;background:linear-gradient(to top,var(--paper) 74%,rgba(241,244,240,0));z-index:3}
+.bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.bar .msg{flex:1;min-width:140px;font-size:14px;color:var(--ink-2)}
+.go{border:0;cursor:pointer;background:var(--ink);color:#fff;font-weight:650;font-size:15px;padding:13px 20px;border-radius:14px;box-shadow:0 8px 22px -10px rgba(14,47,44,.55);transition:background .2s,transform .12s}
+.go:hover{background:#0A2523}.go:active{transform:translateY(1px)}
+.go:disabled{background:#8FA19D;box-shadow:none;cursor:not-allowed}
+.go.alt{background:var(--sheet);color:var(--ink);border:1px solid var(--ink);box-shadow:none}
+.go.alt:hover{background:var(--mark-soft)}
+.cta small{display:block;color:var(--mute);margin-top:8px;font-size:12.5px}
+
+/* stage */
+.stage{align-self:start;position:sticky;top:16px;max-height:calc(100vh - 32px);overflow:auto;border-radius:22px}
+@media(max-width:980px){.stage{position:static;max-height:none;overflow:visible}}
+.sheet{background:var(--sheet);border-radius:22px;padding:clamp(22px,3vw,40px);box-shadow:0 1px 0 var(--line),0 30px 60px -36px rgba(14,47,44,.35);min-height:520px}
+.ghost h2{font-size:clamp(24px,2.6vw,32px);line-height:1.12;letter-spacing:-.02em;margin:0 0 14px;font-weight:650;max-width:22ch;text-wrap:balance}
+.ghost p{font-family:var(--copy);font-size:19px;line-height:1.6;color:var(--ink-2);max-width:50ch;margin:0 0 22px}
+.ghost .lines{display:grid;gap:10px;max-width:56ch;margin-bottom:26px}
+.ghost .lines i{display:block;height:11px;border-radius:6px;background:var(--line-2)}
+.ghost .lines i:nth-child(1){width:96%}.ghost .lines i:nth-child(2){width:88%}.ghost .lines i:nth-child(3){width:62%}
+.promise{display:flex;gap:12px;background:var(--mark-soft);border-radius:14px;padding:14px 16px;max-width:56ch;font-size:14.5px}
+.swatch{flex:none;width:10px;align-self:stretch;border-radius:4px;background:var(--mark)}
+
+.phead{display:flex;gap:18px;align-items:center;margin-bottom:6px}
+.phead .thumb{width:84px;height:84px;border-radius:16px;font-size:28px}
+.pname{font-size:clamp(23px,2.6vw,32px);line-height:1.12;letter-spacing:-.025em;font-weight:650;margin:0 0 6px;text-wrap:balance}
+.sub{display:flex;flex-wrap:wrap;gap:2px 14px;color:var(--mute);font-size:14px}
+.block{margin-top:26px}
+.bh{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.bh h3{margin:0;font-size:14px;font-weight:650;color:var(--ink-2);flex:1}
+.bh .cnt{font-size:12.5px;color:var(--mute);font-variant-numeric:tabular-nums}
+.bh .cnt.over{color:var(--flag);font-weight:600}
+.mini{border:1px solid var(--line);background:var(--sheet);border-radius:999px;padding:3px 12px;font-size:13px;cursor:pointer;color:var(--ink-2)}
+.mini:hover{border-color:var(--ink);color:var(--ink)}
+dl.dl{display:grid;grid-template-columns:minmax(80px,130px) 1fr;gap:8px 16px;margin:0}
+dl.dl dt{color:var(--mute);font-size:14px}
+dl.dl dd{margin:0;font-weight:500}
+details.cur{margin-top:12px;font-size:14px;color:var(--ink-2)}
+details.cur summary{cursor:pointer;color:var(--ink-2);font-weight:550}
+details.cur p{margin:8px 0 0;white-space:pre-wrap;font-family:var(--copy);font-size:17px;line-height:1.55;padding:10px 14px;border-left:3px solid var(--line)}
+.fromphoto{margin-top:10px;font-size:14px;color:var(--ink-2)}
+
+.start{margin-top:28px;display:flex;flex-direction:column;align-items:flex-start;gap:8px}
+.skel{display:grid;gap:12px;max-width:60ch;margin-top:30px}
+.skel i{display:block;height:14px;border-radius:7px;background:linear-gradient(90deg,var(--line-2) 25%,#F6F9F7 50%,var(--line-2) 75%);background-size:200% 100%;animation:sh 1.3s linear infinite}
+.skel i:nth-child(1){width:94%}.skel i:nth-child(2){width:82%}.skel i:nth-child(3){width:58%}
+@keyframes sh{to{background-position:-200% 0}}
+.wait{margin-top:20px;color:var(--ink-2)}
+.desc p{font-family:var(--copy);font-size:20px;line-height:1.62;margin:0 0 .85em;max-width:58ch;color:#14312E}
+.desc-edit{font-family:var(--copy);font-size:19px;line-height:1.6;min-height:180px}
+mark{color:inherit;border-radius:3px;padding:0 1px;margin:0 -1px;background:linear-gradient(var(--mark),var(--mark)) no-repeat 0 88%/0% 62%;animation:wipe .55s cubic-bezier(.3,.7,.2,1) forwards;animation-delay:calc(var(--i,0)*140ms + 150ms)}
+@keyframes wipe{to{background-size:100% 62%}}
+@media(prefers-reduced-motion:reduce){mark{animation:none;background-size:100% 62%}.skel i,.badge .sp{animation:none}html{scroll-behavior:auto}}
+.tagrow{display:flex;flex-wrap:wrap;gap:8px}
+.tagrow span{background:var(--line-2);padding:4px 13px;border-radius:999px;font-size:14px}
+.tagrow span.old{background:none;border:1px dashed #B3C1BB;color:var(--ink-2)}
+.cover{margin-top:14px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.cover .t{font-size:13.5px;color:var(--ink-2);margin-right:4px}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:3px 11px;border-radius:999px;font-size:13px}
+.pill.y{background:var(--ok-soft);color:var(--ok)}
+.pill.n{background:var(--flag-soft);color:var(--flag)}
+.pill.y::before{content:"";width:4px;height:8px;border:solid currentColor;border-width:0 2px 2px 0;transform:rotate(40deg) translate(-1px,-1px)}
+.pill.n::before{content:"!";font-weight:700}
+.serp{border:1px solid var(--line);border-radius:14px;padding:16px 18px;max-width:640px}
+.serp .u{font-size:13px;color:var(--mute);margin-bottom:2px}
+.serp .tt{font-size:20px;color:#1A3FA8;line-height:1.3;margin:0 0 4px;font-weight:500}
+.serp .dd{font-size:14.5px;color:var(--ink-2);margin:0}
+.note{margin-top:30px;border-radius:14px;padding:14px 16px;background:var(--ok-soft);color:#14573F;display:flex;gap:12px;align-items:flex-start}
+.note.warn{background:var(--flag-soft);color:#7C2A18}
+.note.saved{background:var(--ok-soft)}
+.note .i{flex:none;width:22px;height:22px;border-radius:50%;background:currentColor;display:grid;place-items:center;margin-top:1px}
+.note b{font-weight:650;display:block}
+.note ul{margin:6px 0 0;padding-left:18px}
+.note li{margin:2px 0;font-size:14px}
+.note .grow{flex:1}
+.after{display:flex;flex-wrap:wrap;gap:10px;margin-top:30px;padding-top:22px;border-top:1px solid var(--line);align-items:center}
+.btn{border:1px solid var(--line);background:var(--sheet);padding:10px 18px;border-radius:12px;cursor:pointer;font-weight:550}
+.btn:hover{border-color:var(--ink)}
+.btn.solid{background:var(--ink);color:#fff;border-color:var(--ink)}
+.btn.solid:hover{background:#0A2523}
+.btn:disabled{opacity:.6;cursor:progress}
+.confirm{flex:1 1 100%;background:var(--mark-soft);border-radius:14px;padding:14px 16px;display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.confirm span{flex:1;min-width:200px}
+.tech{margin-top:18px;font-size:13px;color:var(--mute)}
+.tech summary{cursor:pointer}
+.tech pre{margin:10px 0 0;padding:12px;border-radius:10px;background:var(--paper);color:var(--ink-2);overflow:auto;max-height:240px;font:12px/1.5 ui-monospace,Consolas,monospace}
+.errsheet{background:var(--flag-soft);color:#7C2A18;border-radius:14px;padding:16px 18px;margin-top:26px}
+.errsheet b{display:block;margin-bottom:4px}
+.errsheet code{background:rgba(255,255,255,.7);padding:2px 7px;border-radius:6px;font-size:13px}
+.toast{position:fixed;left:50%;bottom:28px;transform:translate(-50%,20px);background:var(--ink);color:#fff;padding:10px 18px;border-radius:999px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:20}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+
+/* quick write */
+@media(max-width:640px){.top{flex-wrap:wrap}.tabs{order:3;width:100%;margin-left:0}.tabs button{flex:1}.logo{white-space:nowrap}}
+.tabs{display:flex;gap:4px;margin-left:22px;background:var(--line-2);padding:4px;border-radius:999px}
+.tabs button{border:0;background:none;padding:6px 16px;border-radius:999px;font-weight:550;color:var(--ink-2);cursor:pointer}
+.tabs button[aria-current=true]{background:var(--sheet);color:var(--ink);font-weight:650;box-shadow:0 1px 2px rgba(14,47,44,.18)}
+.qwrap{display:grid;grid-template-columns:minmax(340px,500px) minmax(0,1fr);gap:clamp(16px,3vw,32px);padding:8px clamp(18px,4vw,48px) 48px;max-width:1480px;margin:0 auto;align-items:start}
+@media(max-width:980px){.qwrap{grid-template-columns:1fr}}
+.card{background:var(--sheet);border:1px solid var(--line);border-radius:22px;padding:clamp(18px,2.4vw,30px);box-shadow:0 30px 60px -44px rgba(14,47,44,.35)}
+.card .field:first-of-type{margin-top:18px}
+.qtitle{font-size:clamp(24px,2.6vw,30px);line-height:1.12;letter-spacing:-.025em;font-weight:650;margin:0 0 6px}
+.qsub{margin:0;color:var(--ink-2)}
+.qin{width:100%;border:1px solid var(--line);background:var(--sheet);border-radius:12px;padding:10px 12px;font-size:15px}
+.qin:focus{outline:3px solid var(--mark);outline-offset:1px;border-color:var(--ink)}
+textarea.qin{resize:vertical;min-height:120px;line-height:1.5}
+select.qin{appearance:auto;cursor:pointer}
+.qcount{text-align:right;font-size:12.5px;color:var(--mute);margin-top:4px;font-variant-numeric:tabular-nums}
+.drop{display:flex;gap:14px;align-items:center;border:1.5px dashed #B3C1BB;border-radius:14px;padding:12px 14px;background:var(--paper)}
+.drop.over{border-color:var(--ink);background:var(--mark-soft)}
+.drop .dropt{flex:1;min-width:0}.drop .hint{margin-top:6px}
+#qThumb:empty{display:none}
+.qthumb{position:relative;width:72px;height:72px;flex:none}
+.qthumb img{width:100%;height:100%;object-fit:cover;border-radius:12px;display:block}
+.qthumb button{position:absolute;top:-7px;right:-7px;width:22px;height:22px;border-radius:50%;border:0;background:var(--ink);color:#fff;cursor:pointer;line-height:1;font-size:14px}
+.go.wide{width:100%;margin-top:22px}
+.out{min-height:520px}
+.outhead{display:flex;align-items:center;gap:10px;padding-bottom:14px;border-bottom:1px solid var(--line)}
+.outhead h2{margin:0;font-size:17px;font-weight:650;flex:1}
+.outbtns{display:flex;gap:8px}
+.mini:disabled{opacity:.45;cursor:not-allowed}
+.qgh{padding-top:22px}
+.qgh h2{font-size:clamp(22px,2.4vw,28px);line-height:1.15;letter-spacing:-.02em;margin:0 0 12px;font-weight:650;max-width:24ch}
+.qgh p{font-family:var(--copy);font-size:18px;line-height:1.6;color:var(--ink-2);max-width:52ch;margin:0 0 20px}
+.qdesc{width:100%;border:1px solid transparent;border-radius:12px;padding:10px 12px;margin:10px -12px 0;width:calc(100% + 24px);resize:none;overflow:hidden;background:none;font-family:var(--copy);font-size:20px;line-height:1.62;color:#14312E}
+.qdesc:hover{border-color:var(--line)}.qdesc:focus{outline:3px solid var(--mark);outline-offset:0;border-color:var(--ink);background:var(--sheet)}
+.qmeta{margin-top:26px;padding-top:18px;border-top:1px solid var(--line);display:flex;flex-wrap:wrap;gap:10px;align-items:center;font-size:13px;color:var(--mute)}
+.qmeta .grow{flex:1}
+.qval{font-size:16px;line-height:1.5;margin:0;white-space:pre-wrap}
+
+/* polish */
+body{background:radial-gradient(900px 420px at 6% -8%,#DDEFE6 0,transparent 70%),radial-gradient(760px 360px at 100% 0,#FFF4C2 0,transparent 65%),var(--paper);background-attachment:fixed}
+.top{position:sticky;top:0;z-index:15;backdrop-filter:blur(12px);background:rgba(241,244,240,.74);border-bottom:1px solid rgba(216,224,219,.7)}
+.logo{font-weight:700;letter-spacing:-.01em}
+.state{padding:6px 13px;border:1px solid var(--line);border-radius:999px;background:var(--sheet);cursor:pointer}
+.card,.sheet{border-radius:26px;border:1px solid rgba(216,224,219,.9);box-shadow:0 1px 0 #fff inset,0 28px 60px -34px rgba(14,47,44,.4)}
+.go{background:linear-gradient(135deg,#14473F,#0A2523)}
+.go:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 16px 30px -12px rgba(14,47,44,.6)}
+.btn,.mini,.pick span,.qin{transition:border-color .15s,background .15s,transform .15s}
+.btn:hover,.mini:hover{transform:translateY(-1px)}
+.qin:hover{border-color:#B9C6C0}
+.prow{transition:background .2s}.prow:hover{background:rgba(255,255,255,.75)}
+.qdesc,.block,.desc,.note,.errsheet{animation:rise .5s ease both}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.qdesc,.block,.desc,.note,.errsheet{animation:none}}
+.tagrow span{background:linear-gradient(#F6F9F7,#E8EEEA);border:1px solid var(--line)}
+.hero{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:18px 40px;align-items:flex-end;justify-content:space-between;padding:10px 4px 6px}
+.eyebrow{display:inline-block;font-size:12px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#6B5200;background:var(--mark-soft);padding:4px 11px;border-radius:999px}
+.herot{font-size:clamp(30px,4.2vw,50px);line-height:1.04;letter-spacing:-.035em;font-weight:700;margin:12px 0 8px}
+.herot em{font-style:normal;background:linear-gradient(var(--mark),var(--mark)) no-repeat 0 90%/100% 38%}
+.hero p{margin:0;color:var(--ink-2);max-width:52ch;font-size:17px}
+.trust{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:8px}
+.trust li{background:var(--sheet);border:1px solid var(--line);border-radius:999px;padding:6px 14px;font-size:13.5px;color:var(--ink-2)}
+.trust li::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--ok);margin-right:8px;vertical-align:1px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;align-items:center}
+.chips span{font-size:12.5px;color:var(--mute);margin-right:2px}
+.chips button{border:1px solid var(--line);background:var(--paper);border-radius:999px;padding:3px 12px;font-size:13px;cursor:pointer;color:var(--ink-2)}
+.chips button:hover{border-color:var(--ink);background:var(--mark-soft)}
+/* connect card */
+.connect{margin-top:20px;border-radius:22px;background:linear-gradient(160deg,#0E2F2C,#17493F);color:#fff;padding:22px 22px 18px;position:relative;overflow:hidden}
+.connect::after{content:"";position:absolute;right:-50px;top:-50px;width:190px;height:190px;border-radius:50%;background:radial-gradient(circle,rgba(255,216,74,.38),transparent 70%);pointer-events:none}
+.chead{display:flex;gap:14px;align-items:center;position:relative;z-index:1}
+.cicon{flex:none;width:44px;height:44px;border-radius:14px;background:var(--mark);display:grid;place-items:center}
+.chead b{display:block;font-size:19px;letter-spacing:-.01em}.chead small{color:#BFD6CF;font-size:13.5px}
+.csteps{list-style:none;margin:18px 0 0;padding:0;display:grid;gap:14px;counter-reset:s;position:relative;z-index:1}
+.csteps li{display:flex;gap:12px;counter-increment:s;font-size:14.5px;color:#DCEAE5}
+.csteps li::before{content:counter(s);flex:none;width:26px;height:26px;border-radius:50%;background:var(--mark);color:var(--ink);font-weight:700;display:grid;place-items:center;font-size:13px}
+.csteps b{color:#fff;display:block;margin-bottom:2px}
+.cmd{display:flex;align-items:center;gap:8px;margin-top:8px;background:rgba(0,0,0,.3);border-radius:10px;padding:7px 8px 7px 12px;font:12.5px ui-monospace,Consolas,monospace;overflow:auto}
+.cmd code{flex:1;white-space:nowrap;color:#fff}
+.connect .mini{background:rgba(255,255,255,.12);color:#fff;border-color:rgba(255,255,255,.3);flex:none}
+.cfoot{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:18px;position:relative;z-index:1}
+.cbtn{border:0;background:var(--mark);color:var(--ink);font-weight:650;padding:10px 18px;border-radius:12px;cursor:pointer}
+.cbtn:disabled{opacity:.6;cursor:progress}
+.cmsg{font-size:13.5px;color:#CFE3DC;flex:1;min-width:160px}.cmsg.bad{color:#FFC9BD}
+.banner.live{display:flex;gap:12px;align-items:center;background:var(--ok-soft);color:#14573F}
+.banner.live .dot{width:10px;height:10px;border-radius:50%;background:var(--ok);flex:none}
+
+/* app pages */
+.cform{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px;position:relative;z-index:1}
+.cin{flex:1;min-width:220px;border:0;border-radius:12px;padding:12px 14px;font-size:15px}
+.ctrust{list-style:none;margin:6px 0 0;padding:0;display:grid;gap:6px;font-size:13.5px;color:#CFE3DC;position:relative;z-index:1}
+.ctrust li::before{content:"\2713";color:var(--mark);margin-right:8px;font-weight:700}
+.connect .cfoot{margin-top:10px}
+.setwrap{display:grid;grid-template-columns:minmax(320px,560px) minmax(260px,420px);gap:24px;padding:14px clamp(18px,4vw,48px) 48px;max-width:1100px;margin:0 auto;align-items:start}
+@media(max-width:860px){.setwrap{grid-template-columns:1fr}}
+.setwrap h2{margin:0 0 12px;font-size:18px}
+.sline{display:flex;gap:10px;align-items:center;margin-bottom:12px}
+.sline i{width:10px;height:10px;border-radius:50%;background:var(--mark);flex:none}.sline.on i{background:var(--ok)}
+.linkrow{display:flex;gap:8px}.linkrow .qin{flex:1;min-width:0}.linkrow .btn{white-space:nowrap}.hint.bad{color:var(--flag)}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="logo">
+    <svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true"><rect width="30" height="30" rx="9" fill="#0E2F2C"/><path d="M8 20.5h14" stroke="#FFD84A" stroke-width="3.2" stroke-linecap="round"/><path d="M9.5 16.5 15 7l5.5 9.5" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    Store AI Writer
+  </div>
+  <nav class="tabs" aria-label="Mode">
+    <button type="button" data-tab="store">Products</button>
+    <button type="button" data-tab="quick">Quick write</button>
+    <button type="button" data-tab="settings">Settings</button>
+  </nav>
+  <span class="sp"></span>
+  <span class="state" id="state" role="status"><i></i><span id="stateTxt">Checking…</span></span>
+</header>
+
+<main class="qwrap" id="quickView">
+<div class="hero"><div><span class="eyebrow">AI product writer</span>
+  <div class="herot">Facts in. <em>Good copy</em> out.</div>
+  <p>Give it a few details about a product and get a clear description in seconds, without made-up claims.</p></div>
+  <ul class="trust"><li>Runs on your own computer</li><li>Never invents details</li><li>Reads your photos</li></ul></div>
+<section class="card" aria-labelledby="qh">
+  <h1 class="qtitle" id="qh">Describe your product</h1>
+  <p class="qsub">Type what you know. We write the text and never add details you didn't give.</p>
+
+  <div class="field"><label class="lab" for="qLink">Product link <span class="opt">optional</span></label>
+    <div class="linkrow"><input type="url" id="qLink" class="qin" placeholder="Paste a product page link" autocomplete="off"><button type="button" class="btn" id="qFetch">Fetch details</button></div>
+    <p class="hint" id="qLinkMsg">We fill in the name, details and photo from the page. Check them before writing.</p></div>
+  <div class="field"><label class="lab" for="qDesc">What is it?</label>
+    <textarea id="qDesc" class="qin" rows="5" maxlength="2000" placeholder="e.g. Insulated stainless steel water bottle, 750 ml, keeps drinks cold 24 hours, leak-proof lid, 5 colors"></textarea>
+    <div class="chips" id="qEx"><span>Try an example</span></div>
+    <div class="qcount"><span id="qCount">0 / 2000</span></div></div>
+
+  <div class="field"><span class="lab">Photo <span class="opt">optional</span></span>
+    <div class="drop" id="qDrop">
+      <input type="file" id="qFile" accept="image/*" hidden>
+      <div id="qThumb"></div>
+      <div class="dropt"><button type="button" class="btn" id="qPick">Add a photo</button>
+        <p class="hint" id="qPhotoHint">Drop one here or choose a file. We read what's visible, such as colour and style.</p></div>
+    </div></div>
+
+  <div class="two">
+    <div class="field"><label class="lab" for="qName">Product name <span class="opt">optional</span></label>
+      <input type="text" id="qName" class="qin" maxlength="150" autocomplete="off"></div>
+    <div class="field"><label class="lab" for="qKeys">Keywords <span class="opt">optional</span></label>
+      <input type="text" id="qKeys" class="qin" maxlength="200" placeholder="e.g. gym bottle" autocomplete="off"></div>
+  </div>
+
+  <div class="two">
+    <div class="field"><label class="lab" for="qTone">Tone</label><select id="qTone" class="qin"></select></div>
+    <div class="field"><label class="lab" for="qParas">Write</label>
+      <select id="qParas" class="qin"><option value="1">1 paragraph</option><option value="2">2 paragraphs</option><option value="3">3 paragraphs</option></select></div>
+  </div>
+  <div class="two">
+    <div class="field"><span class="lab">Make it</span>
+      <div class="seg" role="radiogroup" aria-label="Length"><label><input type="radio" name="qdetail" value="concise" checked><span>Concise</span></label><label><input type="radio" name="qdetail" value="detailed"><span>Detailed</span></label></div></div>
+    <div class="field"><label class="lab" for="qLang">Language</label>
+      <input type="text" id="qLang" class="qin" list="langs" value="English" autocomplete="off"></div>
+  </div>
+  <div class="field"><span class="lab">Also write</span><div class="pick check" id="qFields" role="group" aria-label="Also write"></div></div>
+
+  <button type="button" class="go wide" id="qGo">Write product text</button>
+  <small class="hint">Takes about 10 to 20 seconds. Press Ctrl+Enter in the box to start.</small>
+</section>
+
+<section class="card out" aria-label="Result" aria-live="polite">
+  <div class="outhead"><h2>Product description</h2>
+    <div class="outbtns"><button type="button" class="mini" id="qCopy" disabled>Copy</button><button type="button" class="mini" id="qDown" disabled>Download</button></div></div>
+  <div id="qOut"></div>
+</section>
+</main>
+
+<main class="wrap" id="storeView" hidden>
+<section aria-labelledby="h1">
+  <div class="intro">
+    <h1 id="h1">Your products</h1>
+    <p>Pick the products that need text. We read each photo and its details, write the description, and nothing is saved until you approve it.</p>
+  </div>
+  <div id="banner"></div>
+
+  <div class="tools">
+    <label class="search"><span class="sr" style="position:absolute;left:-9999px">Search products</span>
+      <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="m11 11 3.5 3.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      <input type="text" id="search" placeholder="Search your products" autocomplete="off"></label>
+    <div class="seg" role="radiogroup" aria-label="Show">
+      <label><input type="radio" name="filter" value="all" checked><span>All</span></label>
+      <label><input type="radio" name="filter" value="need"><span>No description</span></label>
+    </div>
+  </div>
+
+  <details class="style" id="style">
+    <summary>Writing style <small id="styleSum"></small></summary>
+    <div class="field"><span class="lab">What to write</span><div class="pick check" id="fields" role="group" aria-label="What to write"></div></div>
+    <div class="field"><span class="lab">Tone</span><div class="pick" id="tone" role="radiogroup" aria-label="Tone"></div></div>
+    <div class="two">
+      <div class="field"><span class="lab">Length</span>
+        <div class="seg" role="radiogroup" aria-label="Length"><label><input type="radio" name="detail" value="concise"><span>Short</span></label><label><input type="radio" name="detail" value="detailed" checked><span>Detailed</span></label></div></div>
+      <div class="field"><span class="lab">Paragraphs</span>
+        <div class="seg" role="radiogroup" aria-label="Paragraphs"><label><input type="radio" name="paras" value="1"><span>1</span></label><label><input type="radio" name="paras" value="2" checked><span>2</span></label><label><input type="radio" name="paras" value="3"><span>3</span></label></div></div>
+    </div>
+    <div class="field"><label class="lab" for="lang">Language</label>
+      <input type="text" id="lang" list="langs" value="English" autocomplete="off">
+      <datalist id="langs"><option>English</option><option>Hindi</option><option>Malayalam</option><option>Tamil</option><option>Telugu</option><option>Kannada</option><option>Arabic</option><option>Spanish</option><option>French</option></datalist></div>
+    <div class="field"><label class="lab" for="voice">Your brand's voice <span class="opt">optional</span></label>
+      <input type="text" id="voice" placeholder="e.g. warm and simple, like a neighbourhood shop"></div>
+    <div class="field"><span class="lab">Photos</span>
+      <div class="pick check"><label><input type="checkbox" id="photo"><span>Look at the product photo</span></label></div>
+      <p class="hint">Adds what's visible in the photo, such as colour and pattern. Takes a little longer.</p></div>
+  </details>
+
+  <div class="listhead">
+    <label><input type="checkbox" class="cb" id="all"> Select all shown</label>
+    <span id="count"></span>
+  </div>
+  <ul class="plist" id="plist"></ul>
+  <button class="btn moreb" id="more" type="button" hidden>Show more products</button>
+
+  <div class="cta">
+    <div class="bar" id="bar"></div>
+    <small id="barHint">Takes about 10 to 20 seconds per product.</small>
+  </div>
+</section>
+
+<aside class="stage" aria-label="Product preview" aria-live="polite">
+  <div class="sheet" id="sheet"></div>
+</aside>
+</main>
+<main class="setwrap" id="settingsView" hidden>
+<section class="card"><h1 class="qtitle">Writing settings</h1>
+  <p class="qsub">Set these once. Every product you write starts with them.</p>
+  <div class="two"><div class="field"><label class="lab" for="sTone">Tone</label><select id="sTone" class="qin"></select></div>
+    <div class="field"><label class="lab" for="sLang">Language</label><input type="text" id="sLang" class="qin" list="langs" autocomplete="off"></div></div>
+  <div class="two"><div class="field"><label class="lab" for="sParas">Paragraphs</label><select id="sParas" class="qin"><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></div>
+    <div class="field"><label class="lab" for="sDetail">Length</label><select id="sDetail" class="qin"><option value="concise">Short</option><option value="detailed">Detailed</option></select></div></div>
+  <div class="field"><label class="lab" for="sVoice">Your brand's voice <span class="opt">optional</span></label>
+    <textarea id="sVoice" class="qin" rows="3" placeholder="e.g. warm and simple, like a neighbourhood shop"></textarea></div>
+  <div class="field"><div class="pick check"><label><input type="checkbox" id="sPhoto"><span>Look at product photos</span></label></div>
+    <p class="hint">Adds what's visible, such as colour and pattern. Takes a little longer.</p></div>
+  <button type="button" class="go wide" id="sSave">Save settings</button></section>
+<section class="card"><h2>Your store</h2><div id="sStore"></div></section>
+</main>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+const $ = s => document.querySelector(s);
+const el = (tag, props = {}, ...kids) => {
+  const n = document.createElement(tag);
+  for (const [k, v] of Object.entries(props)) {
+    if (k === "class") n.className = v;
+    else if (k.startsWith("on")) n.addEventListener(k.slice(2), v);
+    else if (v !== false && v != null) n.setAttribute(k, v === true ? "" : v);
+  }
+  kids.flat().forEach(c => { if (c != null && c !== false) n.append(c instanceof Node ? c : document.createTextNode(c)); });
+  return n;
+};
+const BASE = location.protocol.startsWith("http") ? location.origin : "http://127.0.0.1:8000";
+
+/* ---------- constants ---------- */
+const FIELDS = [["description","Description"],["tags","Tags"],["title","Product title"],["seo_title","Search title"],["seo_description","Search summary"]];
+const TONES = [["professional","Professional"],["friendly","Friendly"],["luxury","Premium"],["playful","Playful"],["formal","Formal"]];
+const LIMITS = { seo_title:60, seo_description:160 };
+
+/* ---------- state ---------- */
+const S = { mode:"demo", shop:"", map:new Map(), order:[], next:null, search:"", filter:"all",
+            selected:new Set(), active:null, running:false, stop:false, loadingList:false, listError:null };
+
+/* ---------- api ---------- */
+function detailText(d) {
+  if (!d) return "";
+  if (typeof d.detail === "string") return d.detail;
+  if (Array.isArray(d.detail)) return d.detail.map(x => (x.loc || []).slice(1).join(" › ") + ": " + x.msg).join("\n");
+  return "";
+}
+async function api(path, body) {
+  let r;
+  try { r = await fetch(BASE + path, body ? { method:"POST", headers:{ "Content-Type":"application/json" }, body:JSON.stringify(body) } : {}); }
+  catch { throw { kind:"unreachable" }; }
+  let data = null; try { data = await r.json(); } catch {}
+  if (!r.ok) throw { kind: r.status === 404 && path.startsWith("/shopify") && !detailText(data) ? "nomodule" : "http", status:r.status, detail:detailText(data) };
+  return data;
+}
+function say(e) {
+  if (e.kind === "unreachable") return "The page couldn't connect to the writer. Start it with uvicorn app.main:app --reload, then try again.";
+  if (e.kind === "nomodule") return "The store connection isn't installed on the writer yet.";
+  return e.detail || ("The writer answered with error " + e.status + ".");
+}
+
+/* ---------- header + connection ---------- */
+async function loadStatus() {
+  const s = $("#state");
+  try {
+    const st = await api("/shopify/status");
+    S.mode = st.mode; S.shop = st.shop;
+    if (st.mode === "live") { s.className = "state on"; $("#stateTxt").textContent = "Connected to " + st.shop + ".myshopify.com"; }
+    else { s.className = "state demo"; $("#stateTxt").textContent = "Sample store"; }
+  } catch (e) {
+    s.className = "state off"; $("#stateTxt").textContent = e.kind === "unreachable" ? "Can't reach the writer" : "Store connection missing";
+  }
+  renderBanner();
+}
+function renderBanner() {
+  const b = $("#banner"); b.replaceChildren();
+  if (S.listError && S.listError.kind === "nomodule") {
+    b.append(el("div", { class:"banner bad" }, el("b", {}, "The store connection isn't installed yet. "),
+      "Add these two lines to app/main.py, then restart the writer:", el("pre", {}, "from .shopify import router as shopify_router\napp.include_router(shopify_router)")));
+  } else if (S.mode === "demo") {
+    b.append(connectCard());
+  } else if (S.mode === "live") {
+    b.append(el("div", { class:"banner live" }, el("span", { class:"dot" }), el("div", {}, el("b", {}, "Connected to " + S.shop + ".myshopify.com. "), "Your real products are listed below, and every save keeps a backup you can undo.")));
+  }
+}
+
+/* ---------- style panel ---------- */
+FIELDS.forEach(([v, label]) => $("#fields").append(el("label", {}, el("input", { type:"checkbox", value:v, ...(v === "description" || v === "tags" ? { checked:true } : {}) }), el("span", {}, label))));
+TONES.forEach(([v, label], i) => $("#tone").append(el("label", {}, el("input", { type:"radio", name:"tone", value:v, ...(i === 0 ? { checked:true } : {}) }), el("span", {}, label))));
+const radio = n => document.querySelector(`input[name="${n}"]:checked`).value;
+const chosenFields = () => [...document.querySelectorAll("#fields input:checked")].map(i => i.value);
+function optionsNow() {
+  const o = { category:"auto", tone:radio("tone"), paragraphs:+radio("paras"), detail:radio("detail"), language:$("#lang").value.trim() || "English" };
+  if ($("#voice").value.trim()) o.brand_voice = $("#voice").value.trim();
+  return o;
+}
+function styleSummary() {
+  const t = TONES.find(x => x[0] === radio("tone"))[1];
+  $("#styleSum").textContent = [t, radio("detail") === "concise" ? "short" : "detailed", $("#lang").value.trim() || "English"].join(", ");
+}
+$("#style").addEventListener("change", styleSummary); $("#style").addEventListener("input", styleSummary); styleSummary();
+
+/* ---------- products ---------- */
+const initials = t => (t.match(/[A-Za-z0-9]/) || ["?"])[0].toUpperCase();
+function thumbUrl(u, w = 160) { if (!u) return null; return u + (u.includes("?") ? "&" : "?") + "width=" + w; }
+function thumb(p, cls = "thumb") {
+  const t = el("span", { class:cls, "aria-hidden":"true" });
+  if (p.image_url) { const i = el("img", { src:thumbUrl(p.image_url, cls === "thumb" ? 120 : 240), alt:"", loading:"lazy" }); i.onerror = () => { i.remove(); t.textContent = initials(p.title); }; t.append(i); }
+  else t.textContent = initials(p.title);
+  return t;
+}
+async function loadProducts(reset) {
+  if (S.loadingList) return;
+  S.loadingList = true;
+  if (reset) { S.order = []; S.next = null; S.listError = null; }
+  renderList();
+  try {
+    const q = new URLSearchParams(); if (S.search) q.set("search", S.search); if (!reset && S.next) q.set("after", S.next);
+    const r = await api("/shopify/products?" + q);
+    r.products.forEach(p => {
+      if (!S.map.has(p.id)) S.map.set(p.id, { p, status:"idle", last:null, editing:false, confirming:false, saved:null, caption:"", captionFailed:false, error:null });
+      else if (S.map.get(p.id).status !== "saved") S.map.get(p.id).p = p;
+      if (!S.order.includes(p.id)) S.order.push(p.id);
+    });
+    S.next = r.next; S.mode = r.mode;
+  } catch (e) { S.listError = e; }
+  S.loadingList = false;
+  renderBanner(); renderList(); renderBar();
+}
+let searchT;
+$("#search").addEventListener("input", e => { clearTimeout(searchT); searchT = setTimeout(() => { S.search = e.target.value.trim(); loadProducts(true); }, 350); });
+document.querySelectorAll('input[name="filter"]').forEach(i => i.addEventListener("change", () => { S.filter = radio("filter"); renderList(); }));
+$("#more").addEventListener("click", () => loadProducts(false));
+
+const shown = () => S.order.map(id => S.map.get(id)).filter(e => S.filter === "all" || !e.p.existing_description);
+function badge(e) {
+  switch (e.status) {
+    case "queued": return el("span", { class:"badge" }, "Waiting");
+    case "writing": return el("span", { class:"badge" }, el("span", { class:"sp" }), "Writing");
+    case "written": return el("span", { class:"badge ready" }, "Ready to review");
+    case "saved": return el("span", { class:"badge done" }, "Saved");
+    case "error": return el("span", { class:"badge bad" }, "Couldn't write");
+    default: return e.p.existing_description ? el("span", { class:"badge" }, "Has description") : el("span", { class:"badge need" }, "No description");
+  }
+}
+function factSummary(p) {
+  const bits = Object.values(p.attributes || {}).slice(0, 3);
+  const all = [p.product_type, ...bits].filter(Boolean);
+  return all.length ? all.map(b => el("span", {}, b)) : [el("span", {}, "No size or colour details")];
+}
+function renderList() {
+  const rows = shown(), ul = $("#plist");
+  ul.replaceChildren();
+  if (S.listError && !rows.length) ul.append(el("li", { class:"empty" }, say(S.listError)));
+  else if (S.loadingList && !rows.length) ul.append(el("li", { class:"empty" }, "Loading your products…"));
+  else if (!rows.length) ul.append(el("li", { class:"empty" }, S.filter === "need" ? "Every product here already has a description." : "No products found."));
+  rows.forEach(e => {
+    const id = e.p.id;
+    const cb = el("input", { type:"checkbox", class:"cb", "aria-label":"Select " + e.p.title, onchange:ev => { ev.target.checked ? S.selected.add(id) : S.selected.delete(id); renderBar(); syncAll(); } });
+    cb.checked = S.selected.has(id);
+    ul.append(el("li", { class:"prow" + (S.active === id ? " active" : "") }, cb,
+      el("button", { type:"button", class:"pmain", onclick:() => openProduct(id) }, thumb(e.p),
+        el("span", { class:"pinfo" }, el("span", { class:"pt" }, e.p.title), el("span", { class:"ps" }, ...factSummary(e.p)))),
+      badge(e)));
+  });
+  $("#more").hidden = !S.next;
+  $("#more").disabled = S.loadingList;
+  $("#count").textContent = rows.length ? rows.length + " shown, " + S.selected.size + " selected" : "";
+  syncAll();
+}
+function syncAll() {
+  const rows = shown(); const all = $("#all");
+  all.checked = rows.length > 0 && rows.every(e => S.selected.has(e.p.id));
+  all.indeterminate = !all.checked && rows.some(e => S.selected.has(e.p.id));
+  $("#count").textContent = rows.length ? rows.length + " shown, " + S.selected.size + " selected" : "";
+}
+$("#all").addEventListener("change", ev => { shown().forEach(e => ev.target.checked ? S.selected.add(e.p.id) : S.selected.delete(e.p.id)); renderList(); renderBar(); });
+
+/* ---------- facts + highlight ---------- */
+const esc = s => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+function factList(p) {
+  const f = [];
+  Object.values(p.attributes || {}).forEach(v => String(v).split(",").forEach(x => f.push(x.trim())));
+  if (p.vendor) f.push(p.vendor);
+  return [...new Set(f.filter(Boolean))];
+}
+function factRegex(facts) {
+  const pats = [...facts].sort((a, b) => b.length - a.length).map(f => esc(f).replace(/\s+/g, "[\\s-]+"));
+  return pats.length ? new RegExp("(?<![A-Za-z0-9])(" + pats.join("|") + ")(?![A-Za-z0-9])", "gi") : null;
+}
+function highlighted(text, facts) {
+  const frag = document.createDocumentFragment(), re = factRegex(facts);
+  if (!re) { frag.append(text); return frag; }
+  let last = 0, i = 0;
+  for (const m of text.matchAll(re)) {
+    if (m.index > last) frag.append(text.slice(last, m.index));
+    const mk = el("mark", {}, m[0]); mk.style.setProperty("--i", i++); frag.append(mk);
+    last = m.index + m[0].length;
+  }
+  if (last < text.length) frag.append(text.slice(last));
+  return frag;
+}
+const covered = (text, fact) => { const re = factRegex([fact]); return !!(re && re.test(text)); };
+
+/* ---------- writing ---------- */
+function cleanInput(inp, caption) {
+  const o = {};
+  Object.entries(inp).forEach(([k, v]) => { if (v && !(typeof v === "object" && !Object.keys(v).length)) o[k] = v; });
+  if (caption) o.image_caption = caption;
+  return o;
+}
+async function writeOne(id) {
+  const e = S.map.get(id);
+  Object.assign(e, { status:"writing", error:null, editing:false, confirming:false, t0:Date.now(), captionFailed:false });
+  refresh(id);
+  try {
+    let caption = "";
+    if ($("#photo").checked && e.p.image_url) {
+      try { caption = (await api("/shopify/caption", { image_url:e.p.image_url })).caption || ""; } catch { e.captionFailed = true; }
+    }
+    e.caption = caption;
+    const body = { product:cleanInput(e.p.input, caption), options:optionsNow(), fields:chosenFields() };
+    const t0 = performance.now();
+    const data = await api("/generate", body);
+    e.last = { body, data, secs:(performance.now() - t0) / 1000 };
+    e.status = "written";
+  } catch (err) { e.status = "error"; e.error = err; }
+  refresh(id);
+}
+async function runQueue(ids) {
+  if (S.running) return;
+  if (!chosenFields().length) { toast("Choose what to write in Writing style"); $("#style").open = true; return; }
+  S.running = true; S.stop = false;
+  ids.forEach(id => { const e = S.map.get(id); if (e.status !== "writing") { e.status = "queued"; } });
+  renderList(); renderBar();
+  let n = 0;
+  for (const id of ids) {
+    if (S.stop) break;
+    n++; S.progress = [n, ids.length]; renderBar();
+    await writeOne(id);
+  }
+  ids.forEach(id => { const e = S.map.get(id); if (e.status === "queued") e.status = e.last ? "written" : "idle"; });
+  S.running = false; S.progress = null; renderList(); renderBar();
+  if (!S.active && ids.length) openProduct(ids[0]);
+}
+function refresh(id) { renderList(); renderBar(); if (S.active === id) renderStage(); }
+
+/* ---------- saving ---------- */
+function savePayload(e) {
+  const r = e.last.data.result, p = { id:e.p.id };
+  if (r.title) p.title = r.title;
+  if (r.description != null && String(r.description).trim()) p.description = String(r.description);
+  if (Array.isArray(r.tags) && r.tags.length) p.tags = r.tags;
+  if (r.seo_title != null) p.seo_title = String(r.seo_title);
+  if (r.seo_description != null) p.seo_description = String(r.seo_description);
+  return p;
+}
+async function saveOne(id) {
+  const e = S.map.get(id);
+  try {
+    const res = await api("/shopify/save", savePayload(e));
+    e.p = res.product; e.saved = { backup_id:res.backup_id, at:new Date() }; e.status = "saved"; e.confirming = false; e.error = null;
+    return true;
+  } catch (err) { e.error = err; e.confirming = false; toast(say(err)); return false; }
+  finally { refresh(id); }
+}
+async function undoOne(id) {
+  const e = S.map.get(id);
+  try {
+    const res = await api("/shopify/undo", { backup_id:e.saved.backup_id });
+    e.p = res.product; e.saved = null; e.status = "written"; toast("Restored the earlier text");
+  } catch (err) { toast(say(err)); }
+  refresh(id);
+}
+
+/* ---------- bottom bar ---------- */
+function renderBar() {
+  const bar = $("#bar"); bar.replaceChildren();
+  const sel = [...S.selected].filter(id => S.map.has(id));
+  const ready = [...S.map.values()].filter(e => e.status === "written");
+  if (S.running) {
+    const [n, t] = S.progress || [0, 0];
+    bar.append(el("span", { class:"msg" }, "Writing " + n + " of " + t + "…"), el("button", { class:"go alt", type:"button", onclick:() => { S.stop = true; toast("Stopping after this product"); } }, "Stop"));
+    return;
+  }
+  bar.append(el("span", { class:"msg" }, sel.length ? sel.length + (sel.length === 1 ? " product selected" : " products selected") : "Select products to write for"));
+  if (ready.length) bar.append(el("button", { class:"go alt", type:"button", onclick:saveAllReady }, "Save " + ready.length + " written"));
+  bar.append(el("button", { class:"go", type:"button", disabled:!sel.length, onclick:() => runQueue(sel) }, sel.length > 1 ? "Write for " + sel.length + " products" : "Write product text"));
+}
+async function saveAllReady() {
+  const ids = [...S.map.values()].filter(e => e.status === "written").map(e => e.p.id);
+  if (!ids.length) return;
+  if (!confirm("Save the new text for " + ids.length + " product" + (ids.length > 1 ? "s" : "") + " to your store?\n\nEach change can be undone from its product page.")) return;
+  let ok = 0; for (const id of ids) if (await saveOne(id)) ok++;
+  toast(ok + " saved to your store");
+}
+
+/* ---------- stage ---------- */
+const sheet = $("#sheet");
+function toast(msg) { const t = $("#toast"); t.textContent = msg; t.classList.add("show"); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove("show"), 2200); }
+const copy = text => navigator.clipboard.writeText(text).then(() => toast("Copied"), () => toast("Couldn't copy. Select the text and copy it."));
+setInterval(() => { const n = document.getElementById("waitSec"), e = S.active && S.map.get(S.active); if (n && e && e.t0) n.textContent = Math.floor((Date.now() - e.t0) / 1000) + " s"; }, 500);
+
+function openProduct(id) {
+  S.active = id; S.map.get(id).confirming = false; renderList(); renderStage();
+  if (matchMedia("(max-width:980px)").matches) sheet.scrollIntoView({ behavior:"smooth", block:"start" });
+}
+function ghost() {
+  return el("div", { class:"ghost" },
+    el("h2", {}, "Pick a product to see what we found"),
+    el("p", {}, "We read its type, brand, sizes, colours and photo straight from your store."),
+    el("div", { class:"lines", "aria-hidden":"true" }, el("i"), el("i"), el("i")),
+    el("div", { class:"promise" }, el("span", { class:"swatch", "aria-hidden":"true" }),
+      el("div", {}, el("b", {}, "Every fact from your store is highlighted. "), "If the writer adds something your store doesn't say, we remove it before you see it.")));
+}
+function renderStage() {
+  const e = S.active && S.map.get(S.active);
+  if (!e) { sheet.replaceChildren(ghost()); return; }
+  const p = e.p, kids = [];
+  const sub = [p.product_type, p.vendor].filter(Boolean);
+  kids.push(el("div", { class:"phead" }, thumb(p, "thumb big"), el("div", {},
+    el("h2", { class:"pname" }, e.last && e.last.data.result.title ? e.last.data.result.title : p.title),
+    sub.length ? el("div", { class:"sub" }, sub.map(s => el("span", {}, s))) : null)));
+
+  /* what we found */
+  const rows = Object.entries(p.attributes || {});
+  const dl = el("dl", { class:"dl" });
+  rows.forEach(([k, v]) => dl.append(el("dt", {}, k), el("dd", {}, v)));
+  if (p.tags.length) dl.append(el("dt", {}, "Tags"), el("dd", {}, p.tags.join(", ")));
+  kids.push(el("div", { class:"block" }, el("div", { class:"bh" }, el("h3", {}, "What we found in your store")),
+    rows.length || p.tags.length ? dl : el("p", { class:"hint", style:"margin:0" }, "This product has no size, colour or other options in your store. Adding them there gives richer text."),
+    e.caption ? el("p", { class:"fromphoto" }, el("b", {}, "From the photo: "), e.caption) : null,
+    e.captionFailed ? el("p", { class:"hint" }, "The photo couldn't be read this time, so the text uses your store's details only.") : null,
+    p.existing_description ? el("details", { class:"cur" }, el("summary", {}, "Current description"), el("p", {}, p.existing_description)) : null));
+
+  if (e.status === "writing") {
+    kids.push(el("div", { class:"skel", "aria-hidden":"true" }, el("i"), el("i"), el("i")),
+      el("p", { class:"wait" }, "Writing and checking the text… ", el("b", { id:"waitSec" }, Math.floor((Date.now() - (e.t0 || Date.now())) / 1000) + " s"), ". This usually takes 10 to 20 seconds."));
+  } else if (e.status === "queued") {
+    kids.push(el("p", { class:"wait" }, "Waiting for its turn."));
+  } else if (e.last) {
+    kids.push(...resultBlocks(e));
+  } else {
+    kids.push(el("div", { class:"start" },
+      e.error ? el("div", { class:"errsheet", style:"margin:0 0 8px" }, el("b", {}, "The writer couldn't finish"), say(e.error)) : null,
+      el("button", { class:"go", type:"button", disabled:S.running, onclick:() => writeOne(p.id) }, e.error ? "Try again" : "Write product text for this product")));
+  }
+  sheet.replaceChildren(...kids);
+}
+
+function sectionHead(title, ...right) { return el("div", { class:"bh" }, el("h3", {}, title), ...right); }
+function resultBlocks(e) {
+  const { body, data, secs } = e.last, r = data.result || {}, warns = data.warnings || [], p = e.p;
+  const facts = factList(p), kids = [];
+  const desc = r.description != null ? String(r.description) : null;
+
+  if (desc !== null) {
+    const ta = e.editing ? el("textarea", { id:"descEdit", class:"desc-edit", "aria-label":"Edit description" }) : null;
+    if (ta) ta.value = desc;
+    kids.push(el("div", { class:"block" },
+      sectionHead("New description",
+        el("button", { class:"mini", type:"button", onclick:() => { if (e.editing) { r.description = $("#descEdit").value; e.editing = false; } else e.editing = true; renderStage(); } }, e.editing ? "Done" : "Edit"),
+        el("button", { class:"mini", type:"button", onclick:() => copy(e.editing ? $("#descEdit").value : desc) }, "Copy")),
+      ta || el("div", { class:"desc" }, desc.split(/\n{2,}/).filter(Boolean).map(t => el("p", {}, highlighted(t, facts))))));
+    if (facts.length && !e.editing) {
+      kids.push(el("div", { class:"cover" }, el("span", { class:"t" }, "Facts from your store:"),
+        facts.map(f => el("span", { class:"pill " + (covered(desc, f) ? "y" : "n") }, covered(desc, f) ? f : f + " is not in the text"))));
+    }
+  }
+  if (r.title && r.title !== p.title) kids.push(el("div", { class:"block" }, sectionHead("New product title", el("button", { class:"mini", type:"button", onclick:() => copy(String(r.title)) }, "Copy")), el("p", { style:"margin:0;font-size:17px" }, String(r.title))));
+  if (Array.isArray(r.tags)) {
+    const old = new Set(p.tags.map(t => t.toLowerCase()));
+    kids.push(el("div", { class:"block" }, sectionHead("Tags", el("button", { class:"mini", type:"button", onclick:() => copy(r.tags.join(", ")) }, "Copy")),
+      r.tags.length ? el("div", { class:"tagrow" }, r.tags.map(t => el("span", { class:old.has(t.toLowerCase()) ? "old" : "" }, t))) : el("p", { class:"hint", style:"margin:0" }, "No tags could be made from your store's details."),
+      r.tags.length ? el("p", { class:"hint" }, "Dashed tags are already in your store. Saving adds the new ones and keeps what you have.") : null));
+  }
+  if (r.seo_title != null || r.seo_description != null) {
+    const st = String(r.seo_title ?? p.title), sd = String(r.seo_description ?? "");
+    const cnt = (n, lim) => el("span", { class:"cnt" + (n > lim ? " over" : "") }, n + " of " + lim);
+    const slug = p.handle || p.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+    kids.push(el("div", { class:"block" }, sectionHead("How it looks on Google", el("button", { class:"mini", type:"button", onclick:() => copy(st + "\n" + sd) }, "Copy")),
+      el("div", { class:"serp" }, el("div", { class:"u" }, (S.shop ? S.shop + ".myshopify.com" : "yourstore.com") + " › products › " + slug), el("p", { class:"tt" }, st), el("p", { class:"dd" }, sd)),
+      el("div", { class:"cover" }, r.seo_title != null ? el("span", { class:"t" }, "Title ", cnt(st.length, LIMITS.seo_title)) : null, r.seo_description != null ? el("span", { class:"t" }, "Summary ", cnt(sd.length, LIMITS.seo_description)) : null)));
+  }
+
+  /* accuracy note */
+  const removed = warns.filter(w => /removed|invented|built from/i.test(w));
+  const icon = svg => { const s = el("span", { class:"i" }); s.innerHTML = svg; return s; };
+  const tick = '<svg width="12" height="12" viewBox="0 0 12 12"><path d="M2.5 6.4 5 8.8l4.6-5" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  const bang = '<svg width="12" height="12" viewBox="0 0 12 12"><path d="M6 2.5v4M6 9v.1" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/></svg>';
+  kids.push(!warns.length
+    ? el("div", { class:"note" }, icon(tick), el("div", {}, el("b", {}, "Checked against your store's details"), "Nothing was added that your store doesn't say."))
+    : el("div", { class:"note warn" }, icon(bang), el("div", {}, el("b", {}, removed.length ? "We removed text your store's details don't support" : "A few things to know"),
+        removed.length ? "The writer added details that aren't in your store, so we took them out. More options in your store give a fuller description." : "",
+        el("ul", {}, warns.map(w => el("li", {}, w))))));
+
+  /* save area */
+  if (e.status === "saved" && e.saved) {
+    kids.push(el("div", { class:"note saved", style:"margin-top:22px" }, icon(tick), el("div", { class:"grow" }, el("b", {}, "Saved to your store"), "at " + e.saved.at.toLocaleTimeString([], { hour:"numeric", minute:"2-digit" }) + ". The old text is kept so you can undo."),
+      el("button", { class:"btn", type:"button", onclick:() => undoOne(p.id) }, "Undo")));
+    kids.push(el("div", { class:"after", style:"margin-top:18px" }, el("button", { class:"btn", type:"button", disabled:S.running, onclick:() => writeOne(p.id) }, "Write it again")));
+  } else {
+    const after = el("div", { class:"after" });
+    if (e.confirming) {
+      after.append(el("div", { class:"confirm" }, el("span", {}, p.existing_description ? "This replaces the current description in your store. You can undo it afterwards." : "This adds the new text to your store. You can undo it afterwards."),
+        el("button", { class:"btn solid", type:"button", onclick:() => saveOne(p.id) }, "Yes, save it"),
+        el("button", { class:"btn", type:"button", onclick:() => { e.confirming = false; renderStage(); } }, "Cancel")));
+    } else {
+      after.append(el("button", { class:"btn solid", type:"button", onclick:() => { if (e.editing) { r.description = $("#descEdit").value; e.editing = false; } e.confirming = true; renderStage(); } }, "Save to store"),
+        el("button", { class:"btn", type:"button", disabled:S.running, onclick:() => writeOne(p.id) }, "Write it again"),
+        el("button", { class:"btn", type:"button", onclick:() => {
+          const parts = [r.title || p.title, desc, Array.isArray(r.tags) && r.tags.length ? "Tags: " + r.tags.join(", ") : "", r.seo_title != null ? "Search title: " + r.seo_title : "", r.seo_description != null ? "Search summary: " + r.seo_description : ""].filter(Boolean);
+          copy(parts.join("\n\n")); } }, "Copy everything"));
+    }
+    kids.push(after);
+  }
+  if (e.error) kids.push(el("div", { class:"errsheet" }, el("b", {}, "That didn't work"), say(e.error)));
+  kids.push(el("details", { class:"tech" }, el("summary", {}, "Technical details"), el("pre", {}, "Written in " + secs.toFixed(1) + " s by " + (data.provider || "unknown") + "\n\n" + JSON.stringify(body, null, 2))));
+  return kids;
+}
+
+/* ---------- start ---------- */
+renderStage(); renderBar();
+loadStatus().then(() => loadProducts(true));
+
+/* ---------- quick write ---------- */
+const QTONES = [["professional","Professional"],["friendly","Friendly"],["casual","Casual"],["formal","Formal"],["luxury","Luxury"],["playful","Playful"],["persuasive","Persuasive"],["simple","Simplified"]];
+const QFIELDS = [["title","Product title"],["tags","Tags"],["seo_title","Search title"],["seo_description","Search summary"]];
+const Q = { image:null, last:null, running:false };
+const qradio = n => document.querySelector(`input[name="${n}"]:checked`).value;
+QTONES.forEach(([v, l]) => $("#qTone").append(el("option", { value:v }, l)));
+QFIELDS.forEach(([v, l]) => $("#qFields").append(el("label", {}, el("input", { type:"checkbox", value:v, ...(v === "tags" ? { checked:true } : {}) }), el("span", {}, l))));
+
+function showTab(t) {
+  const ids = { store:"storeView", quick:"quickView", settings:"settingsView" };
+  if (!ids[t]) t = "store";
+  for (const [k, id] of Object.entries(ids)) $("#" + id).hidden = k !== t;
+  document.querySelectorAll(".tabs button").forEach(b => b.setAttribute("aria-current", b.dataset.tab === t));
+  if (t === "settings") renderSettingsStore();
+  try { history.replaceState(null, "", "#" + t); } catch {}
+}
+document.querySelectorAll(".tabs button").forEach(b => b.addEventListener("click", () => showTab(b.dataset.tab)));
+
+$("#qDesc").addEventListener("input", () => { $("#qCount").textContent = $("#qDesc").value.length + " / 2000"; });
+$("#qDesc").addEventListener("keydown", e => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); qGenerate(); } });
+
+/* photo: shrink in the browser so the upload stays small */
+function shrink(file) {
+  return new Promise((res, rej) => {
+    const url = URL.createObjectURL(file), im = new Image();
+    im.onload = () => {
+      const k = Math.min(1, 768 / Math.max(im.width, im.height)), c = document.createElement("canvas");
+      c.width = Math.round(im.width * k); c.height = Math.round(im.height * k);
+      c.getContext("2d").drawImage(im, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url); res(c.toDataURL("image/jpeg", .85));
+    };
+    im.onerror = () => { URL.revokeObjectURL(url); rej(); };
+    im.src = url;
+  });
+}
+async function setImage(file) {
+  if (!file) return;
+  if (!file.type.startsWith("image/")) { toast("Please choose an image file"); return; }
+  try { Q.image = await shrink(file); } catch { toast("That photo couldn't be opened"); return; }
+  $("#qThumb").replaceChildren(el("div", { class:"qthumb" }, el("img", { src:Q.image, alt:"Your product photo" }),
+    el("button", { type:"button", "aria-label":"Remove photo", onclick:clearImage }, "×")));
+  $("#qPick").textContent = "Change photo";
+}
+function clearImage() { Q.image = null; $("#qThumb").replaceChildren(); $("#qPick").textContent = "Add a photo"; $("#qFile").value = ""; }
+$("#qPick").addEventListener("click", () => $("#qFile").click());
+$("#qFile").addEventListener("change", e => setImage(e.target.files[0]));
+["dragenter","dragover"].forEach(t => $("#qDrop").addEventListener(t, e => { e.preventDefault(); $("#qDrop").classList.add("over"); }));
+["dragleave","drop"].forEach(t => $("#qDrop").addEventListener(t, e => { e.preventDefault(); $("#qDrop").classList.remove("over"); }));
+$("#qDrop").addEventListener("drop", e => setImage(e.dataTransfer.files[0]));
+
+/* output */
+const QLABEL = { title:"Product title", seo_title:"Search title", seo_description:"Search summary", tags:"Tags" };
+function qText() {
+  if (!Q.last) return "";
+  const r = Q.last.data.result, parts = [];
+  const d = $("#qDescBox"); parts.push(d ? d.value : String(r.description || ""));
+  ["title","seo_title","seo_description"].forEach(k => { if (r[k]) parts.push(QLABEL[k] + ": " + r[k]); });
+  if (Array.isArray(r.tags) && r.tags.length) parts.push("Tags: " + r.tags.join(", "));
+  return parts.join("\n\n");
+}
+async function copyText(t, msg) {
+  try { await navigator.clipboard.writeText(t); }
+  catch { const a = el("textarea", { style:"position:fixed;left:-9999px" }); a.value = t; document.body.append(a); a.select(); document.execCommand("copy"); a.remove(); }
+  toast(msg || "Copied");
+}
+$("#qCopy").addEventListener("click", () => copyText(qText(), "Copied to clipboard"));
+$("#qDown").addEventListener("click", () => {
+  const a = el("a", { href:URL.createObjectURL(new Blob([qText()], { type:"text/plain" })), download:"product-description.txt" });
+  document.body.append(a); a.click(); a.remove();
+});
+function fit(t) { t.style.height = "auto"; t.style.height = t.scrollHeight + 2 + "px"; }
+
+function renderQ(state, err) {
+  const out = $("#qOut"); out.replaceChildren();
+  const has = state === "done";
+  $("#qCopy").disabled = !has; $("#qDown").disabled = !has;
+  if (state === "empty") {
+    out.append(el("div", { class:"qgh" }, el("h2", {}, "Your text will appear here"),
+      el("p", {}, "Describe the product on the left, then press Write product text. You can edit the result before you copy it."),
+      el("div", { class:"ghost" }, el("div", { class:"lines" }, el("i"), el("i"), el("i"))),
+      el("div", { class:"promise" }, el("span", { class:"swatch" }), el("div", {}, el("b", {}, "Only your facts. "), "If the writer adds something you didn't say, we remove it before you see it."))));
+  } else if (state === "loading") {
+    out.append(el("div", { class:"qgh" }, el("div", { class:"skel" }, el("i"), el("i"), el("i")),
+      el("p", { class:"wait" }, Q.image ? "Reading your photo, then writing. About 10 to 30 seconds." : "Writing. About 10 to 20 seconds.")));
+  } else if (state === "error") {
+    out.append(el("div", { class:"errsheet" }, el("b", {}, "That didn't work"), say(err)));
+  } else {
+    const { data, secs } = Q.last, r = data.result || {}, warns = data.warnings || [];
+    const box = el("textarea", { id:"qDescBox", class:"qdesc", "aria-label":"Product description" }); box.value = String(r.description || "");
+    out.append(box); box.addEventListener("input", () => fit(box)); requestAnimationFrame(() => fit(box));
+    const extra = (k, node) => out.append(el("div", { class:"block" }, el("div", { class:"bh" }, el("h3", {}, QLABEL[k]),
+      el("button", { type:"button", class:"mini", onclick:() => copyText(Array.isArray(r[k]) ? r[k].join(", ") : String(r[k])) }, "Copy")), node));
+    if (r.title) extra("title", el("p", { class:"qval" }, r.title));
+    if (r.seo_title) extra("seo_title", el("p", { class:"qval" }, r.seo_title));
+    if (r.seo_description) extra("seo_description", el("p", { class:"qval" }, r.seo_description));
+    if (Array.isArray(r.tags) && r.tags.length) extra("tags", el("div", { class:"tagrow" }, ...r.tags.map(t => el("span", {}, t))));
+    if (data.photo_note) out.append(el("p", { class:"fromphoto" }, el("b", {}, "From your photo: "), data.photo_note));
+    if (data.photo_error) out.append(el("div", { class:"note warn" }, el("div", { class:"grow" }, el("b", {}, "The photo wasn't used"), data.photo_error)));
+    if (warns.length) out.append(el("div", { class:"note warn" }, el("div", { class:"grow" }, el("b", {}, "We adjusted the text to keep it true to your details"),
+      el("ul", {}, ...warns.map(w => el("li", {}, w))))));
+    out.append(el("div", { class:"qmeta" }, el("span", { class:"grow" }, "Written in " + secs.toFixed(0) + " s by " + data.provider),
+      el("button", { type:"button", class:"btn", onclick:qGenerate }, "Write again")));
+  }
+}
+async function qGenerate() {
+  if (Q.running) return;
+  const desc = $("#qDesc").value.trim(), name = $("#qName").value.trim();
+  if (!desc && !name && !Q.image) { toast("Describe your product or add a photo first"); $("#qDesc").focus(); return; }
+  const fields = ["description", ...[...document.querySelectorAll("#qFields input:checked")].map(i => i.value)];
+  const body = { description:desc, name, keywords:$("#qKeys").value.trim(), image:Q.image, fields,
+    options:{ category:"auto", tone:$("#qTone").value, paragraphs:+$("#qParas").value, detail:qradio("qdetail"), language:$("#qLang").value.trim() || "English", ...(SET.voice ? { brand_voice:SET.voice } : {}) } };
+  Q.running = true; $("#qGo").disabled = true; $("#qGo").textContent = "Writing…"; renderQ("loading");
+  const t0 = performance.now();
+  try { const data = await api("/quick/generate", body); Q.last = { data, secs:(performance.now() - t0) / 1000 }; renderQ("done"); }
+  catch (e) { Q.last = null; renderQ("error", e); }
+  finally { Q.running = false; $("#qGo").disabled = false; $("#qGo").textContent = "Write product text"; }
+}
+$("#qGo").addEventListener("click", qGenerate);
+renderQ("empty");
+
+/* ---------- connect your store ---------- */
+function connectCard() {
+  const msg = el("span", { class:"cmsg" });
+  const input = el("input", { type:"text", class:"cin", placeholder:"your-store.myshopify.com", autocomplete:"off", "aria-label":"Your store address" });
+  const go = el("button", { type:"button", class:"cbtn", onclick:() => startInstall(input, msg) }, "Connect with Shopify");
+  input.addEventListener("keydown", e => { if (e.key === "Enter") go.click(); });
+  return el("div", { class:"connect" },
+    el("div", { class:"chead" },
+      el("span", { class:"cicon" }, el("svg", { width:"24", height:"24", viewBox:"0 0 24 24", fill:"none", stroke:"#0E2F2C", "stroke-width":"2", "stroke-linecap":"round", "stroke-linejoin":"round" },
+        el("path", { d:"M5 8h14l-1 12H6L5 8z" }), el("path", { d:"M9 8V6a3 3 0 0 1 6 0v2" }))),
+      el("div", {}, el("b", {}, "Connect your store"), el("small", {}, "Bring in your products in one click. You're looking at a sample store until then."))),
+    el("div", { class:"cform" }, input, go), el("div", { class:"cfoot" }, msg),
+    el("ul", { class:"ctrust" }, el("li", {}, "We read your products, photos and details"), el("li", {}, "Nothing is saved to your store until you approve it"), el("li", {}, "Every change can be undone")));
+}
+function startInstall(input, msg) {
+  const shop = input.value.trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\/.*$/, "").replace(/\.myshopify\.com$/, "");
+  msg.className = "cmsg bad";
+  if (!/^[a-z0-9][a-z0-9-]*$/.test(shop)) { msg.textContent = "Enter your store address, like your-store.myshopify.com"; return; }
+  // later: location.href = "/shopify/install?shop=" + shop + ".myshopify.com";
+  msg.textContent = "Connecting real stores isn't switched on in this preview yet. Try everything with the sample store below.";
+}
+async function checkConn(btn, msg) {
+  btn.disabled = true; btn.textContent = "Checking…"; msg.className = "cmsg"; msg.textContent = "";
+  try {
+    const r = await api("/shopify/check");
+    if (r.ok) { toast("Connected to " + r.shop); await loadStatus(); await loadProducts(true); }
+    else { msg.className = "cmsg bad"; msg.textContent = r.message || "Could not connect."; }
+  } catch (e) { msg.className = "cmsg bad"; msg.textContent = say(e); }
+  btn.disabled = false; btn.textContent = "Check connection";
+}
+$("#state").addEventListener("click", () => showTab("store"));
+
+/* example chips */
+[["Water bottle","Insulated stainless steel water bottle, 750 ml, keeps drinks cold 24 hours, leak-proof lid, 5 colors"],
+ ["Shirt","Women's regular fit printed casual shirt, spread collar, sizes S to XL, blue"],
+ ["Kadai","Stainless steel kadai, 2 litre capacity, with lid"]].forEach(([l, t]) =>
+  $("#qEx").append(el("button", { type:"button", onclick:() => { $("#qDesc").value = t; $("#qDesc").dispatchEvent(new Event("input")); $("#qDesc").focus(); } }, l)));
+
+/* ---------- settings ---------- */
+const SET = { tone:"professional", lang:"English", paras:"2", detail:"detailed", voice:"", photo:false };
+try { Object.assign(SET, JSON.parse(localStorage.getItem("saw.settings") || "{}")); } catch {}
+QTONES.forEach(([v, l]) => $("#sTone").append(el("option", { value:v }, l)));
+function applySettings() {
+  $("#sTone").value = SET.tone; $("#sLang").value = SET.lang; $("#sParas").value = SET.paras; $("#sDetail").value = SET.detail;
+  $("#sVoice").value = SET.voice; $("#sPhoto").checked = SET.photo;
+  $("#qTone").value = SET.tone; $("#qParas").value = SET.paras; $("#qLang").value = SET.lang; $("#lang").value = SET.lang;
+  $("#voice").value = SET.voice; $("#photo").checked = SET.photo;
+  const r = (n, v) => { const i = document.querySelector(`input[name="${n}"][value="${v}"]`); if (i) i.checked = true; };
+  r("qdetail", SET.detail); r("detail", SET.detail); r("paras", SET.paras); r("tone", SET.tone);
+  styleSummary();
+}
+$("#sSave").addEventListener("click", () => {
+  Object.assign(SET, { tone:$("#sTone").value, lang:$("#sLang").value.trim() || "English", paras:$("#sParas").value,
+    detail:$("#sDetail").value, voice:$("#sVoice").value.trim(), photo:$("#sPhoto").checked });
+  try { localStorage.setItem("saw.settings", JSON.stringify(SET)); } catch {}
+  applySettings(); toast("Settings saved");
+});
+function renderSettingsStore() {
+  const live = S.mode === "live", box = $("#sStore"); box.replaceChildren();
+  box.append(el("div", { class:"sline" + (live ? " on" : "") }, el("i"), el("b", {}, live ? S.shop + ".myshopify.com" : "Sample store")),
+    el("p", { class:"hint" }, live ? "Your real products are shown on the Products page. Every save keeps a backup you can undo."
+      : "You're exploring with sample products. Connect your own store to write for your real ones."),
+    live ? "" : el("button", { type:"button", class:"btn solid", onclick:() => showTab("store") }, "Connect my store"));
+}
+applySettings();
+showTab(location.hash.slice(1) || "store");
+
+/* ---------- product link ---------- */
+async function fetchLink() {
+  const url = $("#qLink").value.trim(), msg = $("#qLinkMsg"), btn = $("#qFetch");
+  if (!url) { toast("Paste a product link first"); return; }
+  btn.disabled = true; btn.textContent = "Reading…"; msg.className = "hint";
+  try {
+    const r = await api("/quick/link", { url });
+    if (r.name) $("#qName").value = r.name;
+    if (r.description) { $("#qDesc").value = r.description; $("#qDesc").dispatchEvent(new Event("input")); }
+    if (r.image) { const blob = await (await fetch(r.image)).blob(); await setImage(blob); }
+    msg.textContent = "Filled in from " + r.source + ". Check the details, then press Write product text.";
+  } catch (e) { msg.className = "hint bad"; msg.textContent = say(e); }
+  btn.disabled = false; btn.textContent = "Fetch details";
+}
+$("#qFetch").addEventListener("click", fetchLink);
+$("#qLink").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); fetchLink(); } });
+</script>
+</body>
+</html>
