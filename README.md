@@ -1,4 +1,4 @@
-﻿<div align="center">
+<div align="center">
 
 # Store AI Writer
 
@@ -41,7 +41,7 @@ The long-term goal is a product many shop owners can use: connect any store, pic
 ```mermaid
 flowchart LR
     A[Merchant: details, photo or link] --> B[Build the facts]
-    B --> C[Local AI model<br/>Ollama Â· gemma3:4b]
+    B --> C[Local AI model<br/>Ollama · gemma3:4b]
     C --> D{Safety checks}
     D -- problem found --> E[Ask the model to fix it]
     E --> D
@@ -167,28 +167,28 @@ Interactive docs live at `/docs`.
 
 ```
 store-ai-writer/
-â”œâ”€â”€ backend/
-â”‚   â”œâ”€â”€ app/
-â”‚   â”‚   â”œâ”€â”€ main.py          routes, UI, app setup
-â”‚   â”‚   â”œâ”€â”€ quick.py         Quick write and link endpoints
-â”‚   â”‚   â”œâ”€â”€ shopify.py       store connection, products, save, undo, check
-â”‚   â”‚   â”œâ”€â”€ service.py       generate â†’ check â†’ retry loop
-â”‚   â”‚   â”œâ”€â”€ prompts.py       the instructions given to the model
-â”‚   â”‚   â”œâ”€â”€ validators.py    JSON, length, invented-detail and invented-number checks
-â”‚   â”‚   â”œâ”€â”€ categories.py    per-store-type rules and risky words (add new store types here)
-â”‚   â”‚   â”œâ”€â”€ llm.py           providers, rate limit, failover
-â”‚   â”‚   â”œâ”€â”€ vision.py        reads product photos
-â”‚   â”‚   â”œâ”€â”€ linkreader.py    reads product page links, with safety guards
-â”‚   â”‚   â”œâ”€â”€ schemas.py       request and response formats
-â”‚   â”‚   â””â”€â”€ config.py        settings
-â”‚   â”œâ”€â”€ static/index.html    the whole interface in one file
-â”‚   â”œâ”€â”€ tests/               automated tests
-â”‚   â”œâ”€â”€ compare_models.py    compare models side by side
-â”‚   â”œâ”€â”€ connect-shopify.ps1  connect or disconnect a store
-â”‚   â”œâ”€â”€ setup.bat Â· run.bat Â· setup.sh
-â”‚   â””â”€â”€ .env.example
-â”œâ”€â”€ pytest.ini
-â””â”€â”€ pyrightconfig.json
+├── backend/
+│   ├── app/
+│   │   ├── main.py          routes, UI, app setup
+│   │   ├── quick.py         Quick write and link endpoints
+│   │   ├── shopify.py       store connection, products, save, undo, check
+│   │   ├── service.py       generate → check → retry loop
+│   │   ├── prompts.py       the instructions given to the model
+│   │   ├── validators.py    JSON, length, invented-detail and invented-number checks
+│   │   ├── categories.py    per-store-type rules and risky words (add new store types here)
+│   │   ├── llm.py           providers, rate limit, failover
+│   │   ├── vision.py        reads product photos
+│   │   ├── linkreader.py    reads product page links, with safety guards
+│   │   ├── schemas.py       request and response formats
+│   │   └── config.py        settings
+│   ├── static/index.html    the whole interface in one file
+│   ├── tests/               automated tests
+│   ├── compare_models.py    compare models side by side
+│   ├── connect-shopify.ps1  connect or disconnect a store
+│   ├── setup.bat · run.bat
+│   └── .env.example
+├── pytest.ini
+└── pyrightconfig.json
 ```
 
 ## Why gemma3:4b
